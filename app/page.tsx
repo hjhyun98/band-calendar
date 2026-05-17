@@ -3,7 +3,6 @@
 import { loadBindings } from "next/dist/build/swc";
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 import { start } from "repl";
 
 const times = ["9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"];
@@ -29,6 +28,7 @@ export default function Home(){
   maxDate.setMonth(maxDate.getMonth() + 6);
 
   const [savedDateKeys, setSavedDateKeys] =useState<string[]>([]);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const formatDate = (date: Date) => {
     const weekday = date.toLocaleDateString("en-US", {
@@ -110,7 +110,11 @@ export default function Home(){
       localStorage.setItem("schedules", JSON.stringify(schedules));
       setSavedDateKeys(Object.keys(schedules));
 
-      console.log("저장완료:", schedules);
+      setSaveMessage("saved");
+
+      setTimeout(() => {
+        setSaveMessage("");
+      }, 2000);
   };
 
   const handleReset = () => {
@@ -143,6 +147,22 @@ export default function Home(){
 
   return (
     <main className="bg-white min-h-screen text-black p-8">
+      {saveMessage && (
+            <div
+              className="
+                fixed top-6 left-1/2 -translate-x-1/2 z-50
+                min-w-[280px]
+                rounded-2xl
+                border border-white/40
+                bg-white/20
+                px-6 py-4
+                text-center text-base font-medium text-gray-700
+                shadow-2xl
+                backdrop-blur-lg
+              ">
+                {saveMessage}
+              </div>
+          )}
       <h1>Band Calendar</h1>
 
       <Calendar
@@ -174,14 +194,10 @@ export default function Home(){
         value={selectedDate}
         minDate={new Date()}
         maxDate={maxDate}
-        tileClassName={({date}) => {
+        tileClassName={({ date }) => {
           const dateKey = formatDate(date);
 
-          if(savedDateKeys.includes(dateKey)){
-            return "saved-date";
-          }
-
-          return null;
+          return savedDateKeys.includes(dateKey) ? "saved-date" : null;
         }}
       />
 
@@ -217,7 +233,7 @@ export default function Home(){
               }`}
           >save</button>
         </div>
-
+          
           <div className="grid grid-cols-4 gap-4">
             {times.slice(0,-1).map((time, index) => {
               const isSelected = 
