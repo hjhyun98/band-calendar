@@ -25,7 +25,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.react-calendar_tile.saved-date {
+.react-calendar_tile.saved-date,
+.react-calendar_tile.saved-date:enabled,
+.react-calendar_tile.saved-date:enabled:hover,
+.react-calendar_tile.saved-date:enabled:focus {
   background-color: #dbeafe !important;
   border-radius: 8px;
 }
