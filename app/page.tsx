@@ -7,10 +7,14 @@ import { start } from "repl";
 
 const times = ["9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"];
 
-type Schedule ={
-  startIndex: number;
-  endIndex: number | null;
-};
+// type Schedule ={
+//   startIndex: number;
+//   endIndex: number | null;
+// };
+
+  type Schedule ={
+    selectedIndexes: number[];
+  };
 
 export default function Home(){
   
@@ -42,57 +46,93 @@ export default function Home(){
     return time.split(":")[0];
   };
 
-  const [startIndex, setStartIndex] = useState<number | null>(null);
-  const [endIndex, setEndIndex] = useState<number | null>(null);
+  // const [startIndex, setStartIndex] = useState<number | null>(null);
+  // const [endIndex, setEndIndex] = useState<number | null>(null);
 
-  const handleTimeClick = (clickedIndex: number) => {
+  const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+  const [rangeStartIndex, setRangeStartIndex] = useState<number | null>(null);
+
+  // const handleTimeClick = (clickedIndex: number) => {
     
-    console.log("you clicked: ",clickedIndex);
+  //   console.log("you clicked: ",clickedIndex);
    
-    if (startIndex === null) {
-      setStartIndex(clickedIndex);
-      return;
-    }
+  //   if (startIndex === null) {
+  //     setStartIndex(clickedIndex);
+  //     return;
+  //   }
 
-    if (endIndex !== null){
-      if(clickedIndex === endIndex){
-        setStartIndex(null);
-        setEndIndex(null);
-        return;
-      }
+  //   if (endIndex !== null){
+  //     if(clickedIndex === endIndex){
+  //       setStartIndex(null);
+  //       setEndIndex(null);
+  //       return;
+  //     }
 
-      if(clickedIndex > startIndex){
-        setEndIndex(clickedIndex);
-        return;
-      }
+  //     if(clickedIndex > startIndex){
+  //       setEndIndex(clickedIndex);
+  //       return;
+  //     }
 
-      setStartIndex(clickedIndex);
-      setEndIndex(null);
-      return;
-    }
+  //     setStartIndex(clickedIndex);
+  //     setEndIndex(null);
+  //     return;
+  //   }
 
-    if(clickedIndex === startIndex){
-      setStartIndex(null);
-      setEndIndex(null);
-      return;
-    }
+  //   if(clickedIndex === startIndex){
+  //     setStartIndex(null);
+  //     setEndIndex(null);
+  //     return;
+  //   }
     
-    if (clickedIndex < startIndex){
-      setStartIndex(clickedIndex);
-      setEndIndex(null);
-      return;
-    }
+  //   if (clickedIndex < startIndex){
+  //     setStartIndex(clickedIndex);
+  //     setEndIndex(null);
+  //     return;
+  //   }
     
-    if (clickedIndex >= startIndex){
-      setEndIndex(clickedIndex);
+  //   if (clickedIndex >= startIndex){
+  //     setEndIndex(clickedIndex);
+  //     return;
+  //   }
+
+    
+  // }
+
+  const handleTimeClick = (clickedIndex: number) =>{
+    if(selectedIndexes.includes(clickedIndex)){
+      setSelectedIndexes(
+        selectedIndexes.filter((index) => index !== clickedIndex)
+      );
       return;
     }
 
-    
-  }
+    if(rangeStartIndex === null){
+      setRangeStartIndex(clickedIndex);
+      return;
+    }
+
+    if(clickedIndex === rangeStartIndex) {
+      setRangeStartIndex(null);
+      return;
+    }
+
+    const start = Math.min(rangeStartIndex, clickedIndex);
+    const end = Math.max(rangeStartIndex, clickedIndex);
+
+    const range = Array.from(
+      {length: end - start + 1},
+      (_, i) => start + i
+    );
+
+    setSelectedIndexes((prev) =>
+      Array.from(new Set([...prev, ...range])).sort((a,b) => a - b)
+    );
+
+    setRangeStartIndex(null);
+  };
 
   const handleSave = () => {
-    if(!selectedDate || startIndex === null) return;
+    if(!selectedDate || selectedIndexes === null) return;
 
     const dateKey = formatDate(selectedDate);
 
@@ -102,9 +142,13 @@ export default function Home(){
       ? JSON.parse(savedData)
       : {};
 
+      // schedules[dateKey] = {
+      //   startIndex,
+      //   endIndex,
+      // };
+
       schedules[dateKey] = {
-        startIndex,
-        endIndex,
+        selectedIndexes,
       };
 
       localStorage.setItem("schedules", JSON.stringify(schedules));
@@ -132,19 +176,52 @@ export default function Home(){
     localStorage.setItem("schedules", JSON.stringify(schedules));
     setSavedDateKeys(Object.keys(schedules));
 
-    setStartIndex(null);
-    setEndIndex(null);
+    // setStartIndex(null);
+    // setEndIndex(null);
+
+    setSelectedIndexes([]);
+    setRangeStartIndex(null);
 
     console.log("삭제완료:",schedules);
   };
 
-  const selectedTimeText = 
-    startIndex === null
-    ? "-"
-    : endIndex === null
-      ? `${times[startIndex]} ~ ?`
-      : `${times[startIndex]} ~ ${times[endIndex+1]}`;
+  // const selectedTimeText = 
+  //   startIndex === null
+  //   ? "-"
+  //   : endIndex === null
+  //     ? `${times[startIndex]} ~ ?`
+  //     : `${times[startIndex]} ~ ${times[endIndex+1]}`;
 
+  const formatSelectedTimeText = (indexes: number[]) => {
+    if(indexes.length === 0) return "-";
+
+    const sortedIndexes = [...indexes].sort((a,b) => a - b);
+    
+    const ranges: string[] = [];
+
+    let rangeStart = sortedIndexes[0];
+    let rangeEnd = sortedIndexes[0];
+
+    for(let i = 1; i < sortedIndexes.length; i++){
+      const currentIndex = sortedIndexes[i];
+
+      if(currentIndex === rangeEnd + 1){
+        rangeEnd = currentIndex;
+      } else {
+        ranges.push(`${times[rangeStart]} ~ ${times[rangeEnd+1]}`);
+        
+        rangeStart = currentIndex;
+        rangeEnd = currentIndex;
+      }
+    }
+
+    ranges.push(`${times[rangeStart]} ~ ${times[rangeEnd+1]}`);
+
+    return ranges.join(",");
+  };
+
+  const selectedTimeText = formatSelectedTimeText(selectedIndexes);
+  
   return (
     <main className="bg-white min-h-screen text-black p-8">
       {saveMessage && (
@@ -173,22 +250,36 @@ export default function Home(){
           const dateKey = formatDate(clickedDate);
           const savedData = localStorage.getItem("schedules");
 
-          if(!savedData) {
-            setStartIndex(null);
-            setEndIndex(null);
+          // if(!savedData) {
+          //   setStartIndex(null);
+          //   setEndIndex(null);
+          //   return;
+          // }
+
+          if(!savedData){
+            setSelectedIndexes([]);
+            setRangeStartIndex(null);
             return;
           }
 
           const schedules: Record<string, Schedule> = JSON.parse(savedData);
           const savedSchedule = schedules[dateKey];
         
-          if (savedSchedule) {
-            setStartIndex(savedSchedule.startIndex);
-            setEndIndex(savedSchedule.endIndex);
+          if(savedSchedule){
+            setSelectedIndexes(savedSchedule.selectedIndexes);
+            setRangeStartIndex(null);
           } else {
-            setStartIndex(null);
-            setEndIndex(null);
+            setSelectedIndexes([]);
+            setRangeStartIndex(null);
           }
+
+          // if (savedSchedule) {
+          //   setStartIndex(savedSchedule.startIndex);
+          //   setEndIndex(savedSchedule.endIndex);
+          // } else {
+          //   setStartIndex(null);
+          //   setEndIndex(null);
+          // }
         }
       }
         value={selectedDate}
@@ -222,12 +313,14 @@ export default function Home(){
           >reset</button>
 
           <button
-            disabled={startIndex === null}
+            // disabled={startIndex === null}
+            disabled={selectedIndexes.length === 0}
             onClick={handleSave}
             className={`
               ml-2 px-4 py-2 rounded
               ${
-                startIndex === null
+                // startIndex === null
+                selectedIndexes.length === 0
                   ? "bg-gray-300 text-gray-500"
                   : "bg-blue-500 text-white"
               }`}
@@ -236,13 +329,15 @@ export default function Home(){
           
           <div className="grid grid-cols-4 gap-4">
             {times.slice(0,-1).map((time, index) => {
+              // const isSelected = 
+              // startIndex !== null &&
+              // (
+              //   endIndex === null
+              //   ? index === startIndex
+              //   : index >= startIndex && index <= endIndex
+              // );
               const isSelected = 
-              startIndex !== null &&
-              (
-                endIndex === null
-                ? index === startIndex
-                : index >= startIndex && index <= endIndex
-              );
+                selectedIndexes.includes(index) || rangeStartIndex === index;
               return(
                 <button 
                 key={time}
